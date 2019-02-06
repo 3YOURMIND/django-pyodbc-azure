@@ -22,11 +22,10 @@ if pyodbc_ver < (3, 0):
 
 from django.conf import settings
 from django.db.backends.base.base import BaseDatabaseWrapper
-from django.db.backends.base.validation import BaseDatabaseValidation
+from django.db.utils import ProgrammingError
 from django.utils.encoding import smart_str
 from django.utils.functional import cached_property
 from django.utils.six import binary_type, text_type
-from django.utils.timezone import utc
 
 if hasattr(settings, 'DATABASE_CONNECTION_POOLING'):
     if not settings.DATABASE_CONNECTION_POOLING:
@@ -605,10 +604,16 @@ class CursorWrapper(object):
         return row
 
     def fetchmany(self, chunk):
-        return self.format_rows(self.cursor.fetchmany(chunk))
+        try:
+            return self.format_rows(self.cursor.fetchmany(chunk))
+        except ProgrammingError:
+            return []
 
     def fetchall(self):
-        return self.format_rows(self.cursor.fetchall())
+        try:
+            return self.format_rows(self.cursor.fetchall())
+        except ProgrammingError:
+            return []
 
     def __getattr__(self, attr):
         if attr in self.__dict__:
