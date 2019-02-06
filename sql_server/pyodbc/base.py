@@ -606,14 +606,16 @@ class CursorWrapper(object):
     def fetchmany(self, chunk):
         try:
             return self.format_rows(self.cursor.fetchmany(chunk))
-        except ProgrammingError:
+        except (ProgrammingError, Database.Error):
             return []
 
     def fetchall(self):
         try:
-            return self.format_rows(self.cursor.fetchall())
-        except ProgrammingError:
+            rows = self.cursor.fetchall()
+        except (ProgrammingError, Database.Error):
             return []
+        else:
+            return self.format_rows(rows)
 
     def __getattr__(self, attr):
         if attr in self.__dict__:
