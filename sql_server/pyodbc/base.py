@@ -22,7 +22,7 @@ if pyodbc_ver < (3, 0):
 
 from django.conf import settings
 from django.db.backends.base.base import BaseDatabaseWrapper
-from django.db.utils import ProgrammingError
+from django.db.utils import ProgrammingError, OperationalError
 from django.utils.encoding import smart_str
 from django.utils.functional import cached_property
 from django.utils.six import binary_type, text_type
@@ -315,7 +315,7 @@ class DatabaseWrapper(BaseDatabaseWrapper):
                             need_to_retry = False
                         break
                 if not need_to_retry:
-                    raise
+                    raise OperationalError(*e.args)
 
         conn.timeout = query_timeout
         return conn
