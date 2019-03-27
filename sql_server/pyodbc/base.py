@@ -23,7 +23,7 @@ if pyodbc_ver < (3,0):
     raise ImproperlyConfigured("pyodbc 3.0 or newer is required; you have %s" % Database.version)
 
 from django.conf import settings
-from django.db import NotSupportedError, ProgrammingError
+from django.db import NotSupportedError, ProgrammingError, OperationalError
 from django.db.backends.base.base import BaseDatabaseWrapper
 from django.utils.encoding import smart_str
 from django.utils.functional import cached_property
@@ -307,7 +307,7 @@ class DatabaseWrapper(BaseDatabaseWrapper):
                             need_to_retry = False
                         break
                 if not need_to_retry:
-                    raise
+                    raise OperationalError(*e.args)
 
         conn.timeout = query_timeout
         return conn
