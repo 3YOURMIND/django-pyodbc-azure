@@ -23,12 +23,10 @@ if pyodbc_ver < (3,0):
     raise ImproperlyConfigured("pyodbc 3.0 or newer is required; you have %s" % Database.version)
 
 from django.conf import settings
-from django.db import NotSupportedError
+from django.db import NotSupportedError, ProgrammingError
 from django.db.backends.base.base import BaseDatabaseWrapper
-from django.db.backends.base.validation import BaseDatabaseValidation
 from django.utils.encoding import smart_str
 from django.utils.functional import cached_property
-from django.utils.timezone import utc
 
 if hasattr(settings, 'DATABASE_CONNECTION_POOLING'):
     if not settings.DATABASE_CONNECTION_POOLING:
@@ -355,7 +353,9 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         val = cursor.execute('SELECT SYSDATETIME()').fetchone()[0]
         if isinstance(val, str):
             raise ImproperlyConfigured(
-                "The database driver doesn't support modern datatime types.")
+                "Datetime types are returned as strings. You should likely set TDS_VERSION. See: "
+                "https://github.com/michiya/django-pyodbc-azure/issues/185#issuecomment-460007327"
+            )
 
     def is_usable(self):
         try:
@@ -577,10 +577,20 @@ class CursorWrapper(object):
         return row
 
     def fetchmany(self, chunk):
-        return self.format_rows(self.cursor.fetchmany(chunk))
+        try:
+            rows = self.cursor.fetchmany(chunk)
+        except (ProgrammingError, Database.Error):
+            return []
+        else:
+            return self.format_rows(rows)
 
     def fetchall(self):
-        return self.format_rows(self.cursor.fetchall())
+        try:
+            rows = self.cursor.fetchall()
+        except (ProgrammingError, Database.Error):
+            return []
+        else:
+            return self.format_rows(rows)
 
     def __getattr__(self, attr):
         if attr in self.__dict__:
