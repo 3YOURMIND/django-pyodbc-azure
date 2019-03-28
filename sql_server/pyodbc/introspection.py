@@ -387,7 +387,7 @@ AND t.name = %s"""
                 [name],
                 COL_NAME([parent_object_id], [parent_column_id])
             FROM
-                [sys].[default_contraints]
+                [sys].[default_constraints]
             WHERE
                 OBJECT_NAME([parent_object_id]) = %s
         """, [table_name])
