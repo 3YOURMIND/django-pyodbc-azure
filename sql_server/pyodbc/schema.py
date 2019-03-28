@@ -9,7 +9,6 @@ from django.db.backends.ddl_references import (
 )
 from django.db.models import Index
 from django.db.models.fields import AutoField, BigAutoField
-from django.db.models.fields.related import ManyToManyField
 from django.db.transaction import TransactionManagementError
 from django.utils.encoding import force_text
 
@@ -731,6 +730,18 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
                     "table": self.quote_name(model._meta.db_table),
                     "name": self.quote_name(name),
                 })
+        # Drop default constraints, SQL Server treats defaults as constraints requiring explicit
+        # deletion.
+        for name, infodict in constraints.items():
+            if field.column in infodict['columns'] and infodict['default']:
+                self.execute(
+                    self.sql_alter_column % {
+                        "table": self.quote_name(model._meta.db_table),
+                        "changes": self.sql_alter_column_no_default % {
+                            "column": self.quote_name(name)
+                        }
+                    }
+                )
         # Delete the column
         sql = self.sql_delete_column % {
             "table": self.quote_name(model._meta.db_table),
